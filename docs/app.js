@@ -43,6 +43,10 @@
     return res.json();
   }
 
+  function displayCategory(cat) {
+    return cat ? cat.replace(/^(Организации_|ИП_)/, "") : cat;
+  }
+
   function fmtNumber(v) {
     if (v === null || v === undefined || Number.isNaN(v)) return "нет данных";
     const abs = Math.abs(v);
@@ -171,7 +175,7 @@
       for (const cat of state.currentData.categories) {
         const opt = document.createElement("option");
         opt.value = cat;
-        opt.textContent = cat;
+        opt.textContent = displayCategory(cat);
         categorySelect.appendChild(opt);
       }
       state.currentCategory =
@@ -289,7 +293,7 @@
 
   function renderLegend(breaks, nClasses) {
     const label = (state.currentData.columnLabels && state.currentData.columnLabels[state.currentIndicator]) || state.currentIndicator;
-    let html = `<div class="legend-title">${label}${state.currentCategory ? " — " + state.currentCategory : ""}</div>`;
+    let html = `<div class="legend-title">${label}${state.currentCategory ? " — " + displayCategory(state.currentCategory) : ""}</div>`;
     if (!breaks.length) {
       html += `<div class="legend-nodata"><span class="swatch"></span> Нет данных за ${state.currentYear} год</div>`;
       legendEl.innerHTML = html;
