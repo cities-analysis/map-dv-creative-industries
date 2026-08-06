@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Креативные индустрии Дальнего Востока — интерактивная карта</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+  <aside id="panel">
+    <h1>Креативные индустрии ДВ</h1>
+    <p class="subtitle">Интерактивная карта показателей по муниципалитетам</p>
+
+    <div class="field">
+      <label for="dataset-select">Набор данных</label>
+      <select id="dataset-select"></select>
+    </div>
+
+    <div class="field checkbox-field hidden" id="indexed-field">
+      <label class="checkbox-label">
+        <input type="checkbox" id="indexed-toggle">
+        Индексировано (с поправкой на инфляцию)
+      </label>
+    </div>
+
+    <div class="field" id="category-field">
+      <label for="category-select">Категория</label>
+      <select id="category-select"></select>
+    </div>
+
+    <div class="field">
+      <label for="indicator-select">Показатель</label>
+      <select id="indicator-select"></select>
+    </div>
+
+    <div class="field">
+      <label for="year-slider">Год: <span id="year-label"></span></label>
+      <div class="year-row">
+        <button id="play-btn" title="Проиграть по годам">▶</button>
+        <input type="range" id="year-slider" min="2009" max="2025" step="1" value="2025">
+      </div>
+    </div>
+
+    <div id="legend"></div>
+
+    <div id="detail-panel" class="hidden">
+      <h2 id="detail-name"></h2>
+      <div id="detail-value"></div>
+      <canvas id="detail-chart" width="280" height="110"></canvas>
+      <button id="detail-close">Закрыть</button>
+    </div>
+
+    <p class="hint">Наведите курсор на муниципалитет, чтобы увидеть значение. Кликните, чтобы посмотреть динамику по годам.</p>
+  </aside>
+
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="app.js"></script>
+</body>
+</html>
