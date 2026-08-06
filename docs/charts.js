@@ -179,7 +179,7 @@ const ChartsView = (() => {
     const q = searchInput.value.trim().toLowerCase();
     let matches = state.currentData.municipalities.filter((m) => !state.selectedMunis.includes(m));
     if (q) matches = matches.filter((m) => m.toLowerCase().includes(q));
-    matches = matches.sort((a, b) => a.localeCompare(b, "ru")).slice(0, 30);
+    matches = matches.sort((a, b) => a.localeCompare(b, "ru"));
 
     suggestionsEl.innerHTML = "";
     if (matches.length === 0) {

@@ -159,9 +159,8 @@ select {
   border-color: var(--accent);
 }
 
-#category-field.hidden,
-.checkbox-field.hidden {
-  display: none;
+.hidden {
+  display: none !important;
 }
 
 .checkbox-label {

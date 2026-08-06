@@ -92,7 +92,7 @@ const CiView = (() => {
     const q = searchInput.value.trim().toLowerCase();
     let matches = state.munis;
     if (q) matches = matches.filter((m) => m.toLowerCase().includes(q));
-    matches = [...matches].sort((a, b) => a.localeCompare(b, "ru")).slice(0, 30);
+    matches = [...matches].sort((a, b) => a.localeCompare(b, "ru"));
 
     suggestionsEl.innerHTML = "";
     if (matches.length === 0) {
