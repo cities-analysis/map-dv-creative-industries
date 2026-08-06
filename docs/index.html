@@ -10,58 +10,173 @@
 </head>
 <body>
 
-<div id="app">
-  <aside id="panel">
-    <h1>Креативные индустрии Дальнего Востока</h1>
-    <p class="subtitle">Интерактивная карта показателей по муниципалитетам</p>
+<nav id="tabbar">
+  <div class="tabbar-title">Креативные индустрии Дальнего Востока</div>
+  <div class="tabbar-tabs">
+    <button class="tab-btn active" data-tab="map">Карта</button>
+    <button class="tab-btn" data-tab="charts">Динамика показателей</button>
+    <button class="tab-btn" data-tab="ci">Креативные индустрии</button>
+  </div>
+</nav>
 
-    <div class="field">
-      <label for="dataset-select">Набор данных</label>
-      <select id="dataset-select"></select>
+<div id="views">
+
+  <!-- ==================== ВКЛАДКА: КАРТА ==================== -->
+  <div id="view-map" class="view active">
+    <div id="app">
+      <aside id="panel">
+        <p class="subtitle">Хороплет показателей по муниципалитетам</p>
+
+        <div class="field">
+          <label for="dataset-select">Набор данных</label>
+          <select id="dataset-select"></select>
+        </div>
+
+        <div class="field checkbox-field hidden" id="indexed-field">
+          <label class="checkbox-label">
+            <input type="checkbox" id="indexed-toggle">
+            Индексировано (с поправкой на инфляцию)
+          </label>
+        </div>
+
+        <div class="field" id="category-field">
+          <label for="category-select">Категория</label>
+          <select id="category-select"></select>
+        </div>
+
+        <div class="field">
+          <label for="indicator-select">Показатель</label>
+          <select id="indicator-select"></select>
+        </div>
+
+        <div class="field">
+          <label for="year-slider">Год: <span id="year-label"></span></label>
+          <div class="year-row">
+            <button id="play-btn" title="Проиграть по годам">▶</button>
+            <input type="range" id="year-slider" min="2009" max="2025" step="1" value="2025">
+          </div>
+        </div>
+
+        <div id="legend"></div>
+
+        <div id="detail-panel" class="hidden">
+          <h2 id="detail-name"></h2>
+          <div id="detail-value"></div>
+          <canvas id="detail-chart" width="280" height="110"></canvas>
+          <button id="detail-close">Закрыть</button>
+        </div>
+
+        <p class="hint">Наведите курсор на муниципалитет, чтобы увидеть значение. Кликните, чтобы посмотреть динамику по годам.</p>
+      </aside>
+
+      <div id="map"></div>
     </div>
+  </div>
 
-    <div class="field checkbox-field hidden" id="indexed-field">
-      <label class="checkbox-label">
-        <input type="checkbox" id="indexed-toggle">
-        Индексировано (с поправкой на инфляцию)
-      </label>
+  <!-- ==================== ВКЛАДКА: ДИНАМИКА ПОКАЗАТЕЛЕЙ ==================== -->
+  <div id="view-charts" class="view">
+    <aside id="charts-panel">
+      <p class="subtitle">Сравнение муниципалитетов по годам</p>
+
+      <div class="field">
+        <label for="ch-dataset-select">Набор данных</label>
+        <select id="ch-dataset-select"></select>
+      </div>
+
+      <div class="field checkbox-field hidden" id="ch-indexed-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="ch-indexed-toggle">
+          Индексировано (с поправкой на инфляцию)
+        </label>
+      </div>
+
+      <div class="field" id="ch-category-field">
+        <label for="ch-category-select">Категория</label>
+        <select id="ch-category-select"></select>
+      </div>
+
+      <div class="field">
+        <label for="ch-indicator-select">Показатель</label>
+        <select id="ch-indicator-select"></select>
+      </div>
+
+      <div class="field">
+        <label>Муниципалитеты</label>
+        <div id="ch-muni-chips" class="chips"></div>
+        <input type="text" id="ch-muni-search" placeholder="Начните вводить название…" autocomplete="off">
+        <div id="ch-muni-suggestions" class="suggestions hidden"></div>
+      </div>
+
+      <div class="field two-col">
+        <div>
+          <label for="ch-year-from">Год с</label>
+          <select id="ch-year-from"></select>
+        </div>
+        <div>
+          <label for="ch-year-to">по</label>
+          <select id="ch-year-to"></select>
+        </div>
+      </div>
+
+      <div class="field checkbox-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="ch-line-toggle">
+          Линейный график (иначе — столбчатый)
+        </label>
+      </div>
+    </aside>
+
+    <div id="charts-main">
+      <div id="ch-empty-hint" class="empty-hint">Выберите хотя бы один муниципалитет слева, чтобы увидеть график.</div>
+      <div id="ch-chart-wrap"><canvas id="ch-canvas"></canvas></div>
     </div>
+  </div>
 
-    <div class="field" id="category-field">
-      <label for="category-select">Категория</label>
-      <select id="category-select"></select>
-    </div>
-
-    <div class="field">
-      <label for="indicator-select">Показатель</label>
-      <select id="indicator-select"></select>
-    </div>
-
-    <div class="field">
-      <label for="year-slider">Год: <span id="year-label"></span></label>
-      <div class="year-row">
-        <button id="play-btn" title="Проиграть по годам">▶</button>
-        <input type="range" id="year-slider" min="2009" max="2025" step="1" value="2025">
+  <!-- ==================== ВКЛАДКА: КРЕАТИВНЫЕ ИНДУСТРИИ ==================== -->
+  <div id="view-ci" class="view">
+    <div id="ci-toolbar">
+      <div class="field">
+        <label for="ci-muni-search">Муниципалитет</label>
+        <input type="text" id="ci-muni-search" placeholder="Начните вводить название…" autocomplete="off">
+        <div id="ci-muni-suggestions" class="suggestions hidden"></div>
+      </div>
+      <div class="field">
+        <label for="ci-year-select">Год</label>
+        <select id="ci-year-select"></select>
+      </div>
+      <div class="field">
+        <label for="ci-category-select">Категория</label>
+        <select id="ci-category-select">
+          <option value="">Все категории</option>
+        </select>
+      </div>
+      <div class="field checkbox-field hidden" id="ci-indexed-field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="ci-indexed-toggle">
+          Индексировано
+        </label>
       </div>
     </div>
 
-    <div id="legend"></div>
-
-    <div id="detail-panel" class="hidden">
-      <h2 id="detail-name"></h2>
-      <div id="detail-value"></div>
-      <canvas id="detail-chart" width="280" height="110"></canvas>
-      <button id="detail-close">Закрыть</button>
+    <div id="ci-content">
+      <div id="ci-empty-hint" class="empty-hint">Выберите муниципалитет, чтобы увидеть показатели креативных индустрий.</div>
+      <div id="ci-body" class="hidden">
+        <div id="ci-summary" class="ci-summary"></div>
+        <div id="ci-cards" class="ci-cards"></div>
+      </div>
     </div>
+  </div>
 
-    <p class="hint">Наведите курсор на муниципалитет, чтобы увидеть значение. Кликните, чтобы посмотреть динамику по годам.</p>
-  </aside>
-
-  <div id="map"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<script src="app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"
+  integrity="sha256-s4B2di9zY7yekStouOA0gmeY213ya7YfAA7C56MTe8c=" crossorigin="anonymous"></script>
+<script src="data.js"></script>
+<script src="map.js"></script>
+<script src="charts.js"></script>
+<script src="ci.js"></script>
+<script src="main.js"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
-(() => {
+const MapView = (() => {
   "use strict";
 
-  const DATA_DIR = "data/";
   const COLORS = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"]; // YlGnBu, 6 классов
   const NO_DATA_COLOR = "#e5e7eb";
+  const { displayCategory, fmtNumber } = DataStore;
 
   const el = (id) => document.getElementById(id);
   const datasetSelect = el("dataset-select");
@@ -23,51 +23,25 @@
   const detailChart = el("detail-chart");
 
   const state = {
-    datasetsMeta: null,
-    datasetCache: {},
-    currentBaseKey: null, // ключ из dataset-select (без учёта индексации)
+    currentBaseKey: null,
     currentIndexed: false,
-    currentData: null, // загруженный json
-    currentCategory: null, // строка категории (для типа "category")
-    currentIndicator: null, // имя колонки
+    currentData: null,
+    currentCategory: null,
+    currentIndicator: null,
     currentYear: 2025,
     geoLayer: null,
     map: null,
-    selectedFeatureLayer: null,
+    selectedFeature: null,
     playTimer: null,
+    initialized: false,
   };
 
-  async function fetchJson(path) {
-    const res = await fetch(path);
-    if (!res.ok) throw new Error(`Не удалось загрузить ${path}: ${res.status}`);
-    return res.json();
-  }
-
-  function displayCategory(cat) {
-    return cat ? cat.replace(/^(Организации_|ИП_)/, "") : cat;
-  }
-
-  function fmtNumber(v) {
-    if (v === null || v === undefined || Number.isNaN(v)) return "нет данных";
-    const abs = Math.abs(v);
-    let opts;
-    if (Number.isInteger(v) || abs >= 1000) {
-      opts = { maximumFractionDigits: 0 };
-    } else if (abs >= 1) {
-      opts = { maximumFractionDigits: 2 };
-    } else {
-      opts = { maximumFractionDigits: 4 };
-    }
-    return v.toLocaleString("ru-RU", opts);
-  }
-
   async function init() {
-    const [datasetsMeta, geo] = await Promise.all([
-      fetchJson(DATA_DIR + "datasets.json"),
-      fetchJson(DATA_DIR + "geo.json"),
-    ]);
-    state.datasetsMeta = datasetsMeta;
-    state.geo = geo;
+    if (state.initialized) return;
+    state.initialized = true;
+
+    const { datasetsMeta } = await DataStore.loadMeta();
+    const geo = await DataStore.loadGeo();
 
     for (const [key, meta] of Object.entries(datasetsMeta)) {
       const opt = document.createElement("option");
@@ -76,12 +50,12 @@
       datasetSelect.appendChild(opt);
     }
 
-    initMap();
+    initMap(geo);
 
     datasetSelect.addEventListener("change", () => selectBaseDataset(datasetSelect.value));
     indexedToggle.addEventListener("change", () => {
       state.currentIndexed = indexedToggle.checked;
-      loadDataKey(currentDataKey(), { preserveSelections: true });
+      loadDataKey(DataStore.dataKeyFor(state.currentBaseKey, state.currentIndexed), { preserveSelections: true });
     });
     categorySelect.addEventListener("change", () => {
       state.currentCategory = categorySelect.value;
@@ -104,14 +78,18 @@
     await selectBaseDataset(firstKey);
   }
 
-  function initMap() {
+  function onShow() {
+    if (state.map) state.map.invalidateSize();
+  }
+
+  function initMap(geo) {
     state.map = L.map("map", { zoomControl: true }).setView([55, 135], 4);
     L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       maxZoom: 18,
     }).addTo(state.map);
 
-    state.geoLayer = L.geoJSON(state.geo, {
+    state.geoLayer = L.geoJSON(geo, {
       style: () => styleFor(null),
       onEachFeature: (feature, layer) => {
         layer.on({
@@ -138,14 +116,9 @@
     }
   }
 
-  function currentDataKey() {
-    const meta = state.datasetsMeta[state.currentBaseKey];
-    return state.currentIndexed && meta.indexedKey ? meta.indexedKey : state.currentBaseKey;
-  }
-
   async function selectBaseDataset(baseKey) {
     state.currentBaseKey = baseKey;
-    const meta = state.datasetsMeta[baseKey];
+    const meta = DataStore.datasetsMeta[baseKey];
 
     if (meta.indexedKey) {
       indexedField.classList.remove("hidden");
@@ -159,29 +132,25 @@
   }
 
   async function loadDataKey(key, { preserveSelections }) {
-    if (!state.datasetCache[key]) {
-      state.datasetCache[key] = await fetchJson(DATA_DIR + key + ".json");
-    }
+    const data = await DataStore.loadDataset(key);
     const prevCategory = state.currentCategory;
     const prevIndicator = state.currentIndicator;
     const prevYear = state.currentYear;
 
-    state.currentData = state.datasetCache[key];
-    const isCategory = !!state.currentData.categories;
+    state.currentData = data;
+    const isCategory = !!data.categories;
 
     if (isCategory) {
       categoryField.classList.remove("hidden");
       categorySelect.innerHTML = "";
-      for (const cat of state.currentData.categories) {
+      for (const cat of data.categories) {
         const opt = document.createElement("option");
         opt.value = cat;
         opt.textContent = displayCategory(cat);
         categorySelect.appendChild(opt);
       }
       state.currentCategory =
-        preserveSelections && state.currentData.categories.includes(prevCategory)
-          ? prevCategory
-          : state.currentData.categories[0];
+        preserveSelections && data.categories.includes(prevCategory) ? prevCategory : data.categories[0];
       categorySelect.value = state.currentCategory;
     } else {
       categoryField.classList.add("hidden");
@@ -189,19 +158,17 @@
     }
 
     indicatorSelect.innerHTML = "";
-    for (const col of state.currentData.columns) {
+    for (const col of data.columns) {
       const opt = document.createElement("option");
       opt.value = col;
-      opt.textContent = (state.currentData.columnLabels && state.currentData.columnLabels[col]) || col;
+      opt.textContent = (data.columnLabels && data.columnLabels[col]) || col;
       indicatorSelect.appendChild(opt);
     }
     state.currentIndicator =
-      preserveSelections && state.currentData.columns.includes(prevIndicator)
-        ? prevIndicator
-        : state.currentData.columns[0];
+      preserveSelections && data.columns.includes(prevIndicator) ? prevIndicator : data.columns[0];
     indicatorSelect.value = state.currentIndicator;
 
-    const years = state.currentData.years;
+    const years = data.years;
     yearSlider.min = years[0];
     yearSlider.max = years[years.length - 1];
     state.currentYear =
@@ -217,7 +184,7 @@
 
   function currentColumnIndex() {
     const data = state.currentData;
-    const offset = data.categories ? 3 : 2; // [muniIdx, year, catIdx?, ...values]
+    const offset = data.categories ? 3 : 2;
     return offset + data.columns.indexOf(state.currentIndicator);
   }
 
@@ -226,14 +193,13 @@
     const isCategory = !!data.categories;
     const catIdx = isCategory ? data.categories.indexOf(state.currentCategory) : -1;
     const colIdx = currentColumnIndex();
-    const values = new Map(); // muni name -> value
+    const values = new Map();
 
     for (const row of data.rows) {
       if (row[1] !== state.currentYear) continue;
       if (isCategory && row[2] !== catIdx) continue;
       const muniName = data.municipalities[row[0]];
-      const v = row[colIdx];
-      values.set(muniName, v);
+      values.set(muniName, row[colIdx]);
     }
     return values;
   }
@@ -244,8 +210,7 @@
     nums.sort((a, b) => a - b);
     const nClasses = Math.min(COLORS.length, new Set(nums).size);
     if (nClasses <= 1) {
-      const only = nums[0];
-      return { breaks: [only, only], color: (v) => (v === null || v === undefined ? NO_DATA_COLOR : COLORS[COLORS.length - 1]) };
+      return { breaks: [nums[0], nums[0]], color: (v) => (v === null || v === undefined ? NO_DATA_COLOR : COLORS[COLORS.length - 1]) };
     }
     const breaks = [];
     for (let i = 0; i <= nClasses; i++) {
@@ -263,12 +228,7 @@
   }
 
   function styleFor(color) {
-    return {
-      fillColor: color || NO_DATA_COLOR,
-      weight: 0.8,
-      color: "#94a3b8",
-      fillOpacity: 0.85,
-    };
+    return { fillColor: color || NO_DATA_COLOR, weight: 0.8, color: "#94a3b8", fillOpacity: 0.85 };
   }
 
   function refresh() {
@@ -300,9 +260,7 @@
       return;
     }
     html += '<div class="legend-scale">';
-    for (let i = 0; i < nClasses; i++) {
-      html += `<span style="background:${COLORS[i]}"></span>`;
-    }
+    for (let i = 0; i < nClasses; i++) html += `<span style="background:${COLORS[i]}"></span>`;
     html += "</div>";
     html += `<div class="legend-labels"><span>${fmtNumber(breaks[0])}</span><span>${fmtNumber(breaks[breaks.length - 1])}</span></div>`;
     html += `<div class="legend-nodata"><span class="swatch"></span> Нет данных</div>`;
@@ -326,9 +284,7 @@
     const muniIdx = data.municipalities.indexOf(name);
 
     const series = data.years.map((y) => {
-      const row = data.rows.find(
-        (r) => r[0] === muniIdx && r[1] === y && (!isCategory || r[2] === catIdx)
-      );
+      const row = data.rows.find((r) => r[0] === muniIdx && r[1] === y && (!isCategory || r[2] === catIdx));
       return row ? row[colIdx] : null;
     });
 
@@ -405,8 +361,5 @@
     }, 1200);
   }
 
-  init().catch((err) => {
-    console.error(err);
-    document.getElementById("panel").innerHTML = `<p style="color:red">Ошибка загрузки данных: ${err.message}</p>`;
-  });
+  return { init, onShow };
 })();

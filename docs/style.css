@@ -16,10 +16,71 @@ html, body {
   color: var(--text);
 }
 
+/* ==================== Вкладки (общий каркас) ==================== */
+
+#tabbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 52px;
+  padding: 0 20px;
+  background: #111827;
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.tabbar-title {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.tabbar-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-btn {
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.tab-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+#views {
+  height: calc(100vh - 52px);
+  width: 100vw;
+}
+
+.view {
+  display: none;
+  height: 100%;
+  width: 100%;
+}
+
+.view.active {
+  display: flex;
+}
+
+/* ==================== Карта ==================== */
+
 #app {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
 }
 
 #panel {
@@ -217,7 +278,274 @@ select {
   padding: 6px 10px;
 }
 
+/* ==================== Динамика показателей ==================== */
+
+
+#charts-panel {
+  width: 320px;
+  min-width: 320px;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--panel-border);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+#charts-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  min-width: 0;
+}
+
+.two-col {
+  display: flex;
+  gap: 10px;
+}
+
+.two-col > div {
+  flex: 1;
+}
+
+.empty-hint {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: auto;
+  text-align: center;
+  max-width: 320px;
+}
+
+#ch-chart-wrap {
+  flex: 1;
+  position: relative;
+  display: none;
+}
+
+#ch-chart-wrap.visible {
+  display: block;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 4px 6px 4px 12px;
+  font-size: 12px;
+}
+
+.chip button {
+  border: none;
+  background: none;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.suggestions {
+  position: relative;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  z-index: 20;
+}
+
+.suggestions.hidden {
+  display: none;
+}
+
+.suggestions .suggestion-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.suggestions .suggestion-item:hover,
+.suggestions .suggestion-item.active {
+  background: #eff6ff;
+}
+
+.suggestions .suggestion-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ==================== Креативные индустрии ==================== */
+
+#view-ci { flex-direction: column; }
+
+#ci-toolbar {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--panel-bg);
+  flex-wrap: wrap;
+}
+
+#ci-toolbar .field {
+  margin-bottom: 0;
+  min-width: 200px;
+  position: relative;
+}
+
+#ci-toolbar .checkbox-field {
+  min-width: auto;
+  padding-bottom: 8px;
+}
+
+#ci-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+}
+
+#ci-content #ci-empty-hint {
+  margin: auto;
+}
+
+#ci-body.hidden {
+  display: none;
+}
+
+#ci-body {
+  width: 100%;
+}
+
+.ci-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.ci-stat {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.ci-stat .ci-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.ci-stat .ci-stat-value {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ci-stat .ci-stat-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.ci-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.ci-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.ci-card h3 {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
+.ci-card-body {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ci-card-donut {
+  width: 92px;
+  height: 92px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.ci-card-donut-total {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.ci-card-stats {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 12px;
+}
+
+.ci-card-stats .stat-label {
+  color: var(--text-muted);
+}
+
+.ci-card-stats .stat-value {
+  font-weight: 600;
+}
+
+.ci-card-financials {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--panel-border);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  font-size: 12px;
+}
+
+.ci-card-financials .stat-label {
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.ci-card-financials .stat-value {
+  font-weight: 600;
+}
+
 @media (max-width: 720px) {
   #app { flex-direction: column; }
   #panel { width: 100%; min-width: 0; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--panel-border); }
+  #view-charts { flex-direction: column; }
+  #charts-panel { width: 100%; min-width: 0; max-height: 50vh; border-right: none; border-bottom: 1px solid var(--panel-border); }
+  #tabbar { height: auto; padding: 10px 16px; }
+  #views { height: calc(100vh - 84px); }
 }
