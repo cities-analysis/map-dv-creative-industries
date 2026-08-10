@@ -71,6 +71,9 @@ def build_category_dataset(out_key, csv_file, title, mapping, unmatched, labels)
     ind_cols = [c for c in ind_cols if pd.api.types.is_numeric_dtype(df[c])]
     col_out_names = [clean_col(c) for c in ind_cols]
 
+    has_mp = "most_profitable" in df.columns
+    mp_col = df["most_profitable"].tolist() if has_mp else None
+
     munis = sorted(df["QGIS_name"].unique().tolist())
     muni_idx = {m: i for i, m in enumerate(munis)}
     years = sorted(int(y) for y in df["year"].unique().tolist())
@@ -83,6 +86,9 @@ def build_category_dataset(out_key, csv_file, title, mapping, unmatched, labels)
         row = [muni_idx[m], int(y), cat_idx[cat]]
         for col in value_cols:
             row.append(round_val(col[i]))
+        if has_mp:
+            v = mp_col[i]
+            row.append(v if isinstance(v, str) and v.strip() else None)
         rows.append(row)
 
     out = {
@@ -92,6 +98,7 @@ def build_category_dataset(out_key, csv_file, title, mapping, unmatched, labels)
         "categories": cats,
         "municipalities": munis,
         "years": years,
+        "hasMostProfitable": has_mp,
         "rows": rows,
     }
     write_json(os.path.join(OUT_DIR, f"{out_key}.json"), out)

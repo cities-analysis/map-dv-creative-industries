@@ -111,6 +111,7 @@ h1 {
 
 .field {
   margin-bottom: 16px;
+  position: relative;
 }
 
 .field label {
@@ -354,7 +355,10 @@ select {
 }
 
 .suggestions {
-  position: relative;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
   margin-top: 4px;
   max-height: 220px;
   overflow-y: auto;
@@ -431,10 +435,95 @@ select {
 }
 
 .ci-summary {
+  margin-bottom: 20px;
+}
+
+.ci-summary-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.ci-summary-group {
+  margin-bottom: 16px;
+}
+
+.ci-summary-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 12px;
-  margin-bottom: 28px;
+}
+
+.ci-category-field {
+  max-width: 280px;
+  margin-bottom: 24px;
+}
+
+.ci-top-orgs {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.ci-top-orgs .ci-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.ci-top-orgs-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.ci-top-orgs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ci-top-orgs-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 0 8px 8px 0;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.ci-top-orgs-table td {
+  padding: 7px 8px 7px 0;
+  border-bottom: 1px solid var(--panel-border);
+  vertical-align: top;
+}
+
+.ci-top-orgs-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ci-top-orgs-table td.rank {
+  color: var(--text-muted);
+  width: 20px;
+}
+
+.ci-top-orgs-table td.name {
+  max-width: 320px;
+}
+
+.ci-top-orgs-table td.industry {
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ci-top-orgs-table td.revenue {
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .ci-stat {
@@ -538,6 +627,47 @@ select {
 
 .ci-card-financials .stat-value {
   font-weight: 600;
+}
+
+.ci-card-most-profitable {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 12px;
+}
+
+.ci-card-most-profitable .stat-label {
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.ci-card-most-profitable ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.ci-card-most-profitable li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+}
+
+.ci-card-most-profitable .mp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.ci-card-most-profitable .mp-revenue {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.ci-card-most-profitable .mp-more {
+  color: var(--text-muted);
+  margin-top: 4px;
 }
 
 @media (max-width: 720px) {

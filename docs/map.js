@@ -98,7 +98,7 @@ const MapView = (() => {
             e.target.bringToFront();
           },
           mouseout: (e) => {
-            state.geoLayer.resetStyle(e.target);
+            e.target.setStyle(e.target._choroplethStyle || styleFor(null));
           },
           click: () => onFeatureClick(feature),
         });
@@ -239,7 +239,9 @@ const MapView = (() => {
     state.geoLayer.eachLayer((layer) => {
       const name = layer.feature.properties.QGIS_name;
       const v = values.has(name) ? values.get(name) : null;
-      layer.setStyle(styleFor(color(v)));
+      const style = styleFor(color(v));
+      layer._choroplethStyle = style;
+      layer.setStyle(style);
       const label = (state.currentData.columnLabels && state.currentData.columnLabels[state.currentIndicator]) || state.currentIndicator;
       layer.unbindTooltip();
       layer.bindTooltip(`<b>${name}</b><br>${label}: ${fmtNumber(v)}`, { className: "muni-tooltip", sticky: true });

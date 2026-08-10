@@ -144,12 +144,6 @@
         <label for="ci-year-select">Год</label>
         <select id="ci-year-select"></select>
       </div>
-      <div class="field">
-        <label for="ci-category-select">Категория</label>
-        <select id="ci-category-select">
-          <option value="">Все категории</option>
-        </select>
-      </div>
       <div class="field checkbox-field hidden" id="ci-indexed-field">
         <label class="checkbox-label">
           <input type="checkbox" id="ci-indexed-toggle">
@@ -162,6 +156,12 @@
       <div id="ci-empty-hint" class="empty-hint">Выберите муниципалитет, чтобы увидеть показатели креативных индустрий.</div>
       <div id="ci-body" class="hidden">
         <div id="ci-summary" class="ci-summary"></div>
+        <div class="field ci-category-field">
+          <label for="ci-category-select">Категория</label>
+          <select id="ci-category-select">
+            <option value="">Все категории</option>
+          </select>
+        </div>
         <div id="ci-cards" class="ci-cards"></div>
       </div>
     </div>
