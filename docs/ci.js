@@ -102,7 +102,8 @@ const CiView = (() => {
     yearSelect.value = state.currentYear;
 
     searchInput.addEventListener("input", updateSuggestions);
-    searchInput.addEventListener("focus", updateSuggestions);
+    searchInput.addEventListener("focus", showAllSuggestions);
+    searchInput.addEventListener("click", showAllSuggestions);
     document.addEventListener("click", (e) => {
       if (e.target !== searchInput && !suggestionsEl.contains(e.target)) {
         suggestionsEl.classList.add("hidden");
@@ -132,12 +133,7 @@ const CiView = (() => {
 
   function onShow() {}
 
-  function updateSuggestions() {
-    const q = searchInput.value.trim().toLowerCase();
-    let matches = state.munis;
-    if (q) matches = matches.filter((m) => m.toLowerCase().includes(q));
-    matches = [...matches].sort((a, b) => a.localeCompare(b, "ru"));
-
+  function renderSuggestionList(matches) {
     suggestionsEl.innerHTML = "";
     if (matches.length === 0) {
       const div = document.createElement("div");
@@ -159,6 +155,25 @@ const CiView = (() => {
       }
     }
     suggestionsEl.classList.remove("hidden");
+  }
+
+  function allMunisSorted() {
+    return [...state.munis].sort((a, b) => a.localeCompare(b, "ru"));
+  }
+
+  // При наборе текста - фильтруем список по введённому.
+  function updateSuggestions() {
+    const q = searchInput.value.trim().toLowerCase();
+    const matches = q ? allMunisSorted().filter((m) => m.toLowerCase().includes(q)) : allMunisSorted();
+    renderSuggestionList(matches);
+  }
+
+  // При клике/фокусе - показываем полный список независимо от текущего
+  // значения поля (оно может быть уже заполнено ранее выбранным
+  // муниципалитетом) и выделяем текст, чтобы ввод сразу его заменил.
+  function showAllSuggestions() {
+    searchInput.select();
+    renderSuggestionList(allMunisSorted());
   }
 
   function rowFor(data, muniIdx, year, category) {
