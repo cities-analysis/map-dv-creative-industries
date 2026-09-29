@@ -124,17 +124,58 @@ h1 {
   margin-bottom: 6px;
 }
 
+.field-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-label-row label {
+  margin-bottom: 6px;
+}
+
+.link-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
 select, input[type="range"] {
   width: 100%;
 }
 
-select {
+select,
+input[type="text"] {
   padding: 8px 10px;
   border-radius: 8px;
   border: 1px solid var(--panel-border);
   background: #fff;
   font-size: 14px;
   color: var(--text);
+}
+
+/* Текстовые поля с автодополнением (поиск муниципалитета) визуально
+   оформлены как выпадающий список: тот же паддинг/рамка, что у <select>,
+   плюс стрелка справа. */
+input[type="text"] {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 30px;
 }
 
 .year-row {
@@ -410,6 +451,10 @@ select {
   position: relative;
 }
 
+#ci-toolbar .ci-muni-field {
+  min-width: 360px;
+}
+
 #ci-toolbar .checkbox-field {
   min-width: auto;
   padding-bottom: 8px;
@@ -594,6 +639,21 @@ select {
   pointer-events: none;
 }
 
+.ci-chart-tooltip {
+  position: fixed;
+  transform: translate(-50%, -130%);
+  background: #111827;
+  color: #fff;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  z-index: 1000;
+}
+
 .ci-card-stats {
   flex: 1;
   display: grid;
@@ -627,47 +687,6 @@ select {
 
 .ci-card-financials .stat-value {
   font-weight: 600;
-}
-
-.ci-card-most-profitable {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--panel-border);
-  font-size: 12px;
-}
-
-.ci-card-most-profitable .stat-label {
-  color: var(--text-muted);
-  margin-bottom: 6px;
-}
-
-.ci-card-most-profitable ol {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.ci-card-most-profitable li {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 3px 0;
-}
-
-.ci-card-most-profitable .mp-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text);
-}
-
-.ci-card-most-profitable .mp-revenue {
-  flex-shrink: 0;
-  font-weight: 600;
-}
-
-.ci-card-most-profitable .mp-more {
-  color: var(--text-muted);
-  margin-top: 4px;
 }
 
 @media (max-width: 720px) {

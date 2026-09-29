@@ -3,7 +3,7 @@ const MapView = (() => {
 
   const COLORS = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"]; // YlGnBu, 6 классов
   const NO_DATA_COLOR = "#e5e7eb";
-  const { displayCategory, fmtNumber } = DataStore;
+  const { displayCategory, defaultCategory, fmtNumber } = DataStore;
 
   const el = (id) => document.getElementById(id);
   const datasetSelect = el("dataset-select");
@@ -83,10 +83,19 @@ const MapView = (() => {
   }
 
   function initMap(geo) {
-    state.map = L.map("map", { zoomControl: true }).setView([55, 135], 4);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      maxZoom: 18,
+    state.map = L.map("map", {
+      zoomControl: true,
+      worldCopyJump: false,
+      minZoom: 3,
+      maxBounds: [
+        [-85, -200],
+        [85, 200],
+      ],
+      maxBoundsViscosity: 1,
+    }).setView([55, 135], 4);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
     }).addTo(state.map);
 
     state.geoLayer = L.geoJSON(geo, {
@@ -105,15 +114,23 @@ const MapView = (() => {
       },
     }).addTo(state.map);
 
-    try {
-      const b = state.geoLayer.getBounds();
-      const lngSpan = b.getEast() - b.getWest();
-      if (b.isValid() && lngSpan > 0 && lngSpan < 180) {
-        state.map.fitBounds(b, { padding: [10, 10] });
-      }
-    } catch (e) {
-      /* используем дефолтный view, если границы не удалось вычислить */
-    }
+    // На холодной загрузке контейнер карты иногда ещё не получил
+    // окончательные размеры от раскладки страницы, из-за чего Leaflet
+    // неверно измеряет его и fitBounds ниже может посчитать абсурдный зум.
+    state.map.invalidateSize();
+
+    // Данные помимо "ядра" Дальнего Востока включают и часть западных
+    // муниципалитетов Забайкалья (до ~98° в.д.), из-за чего fitBounds по
+    // всем данным сильно отдалял карту и обрезал акцент с самого ДВ. Поэтому
+    // по умолчанию центрируемся на фиксированной рамке вокруг основного
+    // региона ДВ, а не на фактическом bbox всех данных.
+    state.map.fitBounds(
+      [
+        [42, 118],
+        [78, 195],
+      ],
+      { padding: [10, 10] }
+    );
   }
 
   async function selectBaseDataset(baseKey) {
@@ -150,7 +167,7 @@ const MapView = (() => {
         categorySelect.appendChild(opt);
       }
       state.currentCategory =
-        preserveSelections && data.categories.includes(prevCategory) ? prevCategory : data.categories[0];
+        preserveSelections && data.categories.includes(prevCategory) ? prevCategory : defaultCategory(data.categories);
       categorySelect.value = state.currentCategory;
     } else {
       categoryField.classList.add("hidden");

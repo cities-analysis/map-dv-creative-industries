@@ -42,6 +42,12 @@ const DataStore = (() => {
     return cat ? cat.replace(/^(Организации_|ИП_)/, "") : cat;
   }
 
+  // По умолчанию выбираем категорию "КИ всего" (суммарно по всем отраслям),
+  // если она есть в списке; иначе - первую по алфавиту.
+  function defaultCategory(categories) {
+    return categories.find((c) => displayCategory(c) === "КИ всего") || categories[0];
+  }
+
   function fmtNumber(v) {
     if (v === null || v === undefined || Number.isNaN(v)) return "нет данных";
     const abs = Math.abs(v);
@@ -62,6 +68,7 @@ const DataStore = (() => {
     loadDataset,
     dataKeyFor,
     displayCategory,
+    defaultCategory,
     fmtNumber,
     get datasetsMeta() {
       return datasetsMeta;

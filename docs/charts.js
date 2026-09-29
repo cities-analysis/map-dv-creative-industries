@@ -1,7 +1,7 @@
 const ChartsView = (() => {
   "use strict";
 
-  const { displayCategory, fmtNumber } = DataStore;
+  const { displayCategory, defaultCategory, fmtNumber } = DataStore;
   const el = (id) => document.getElementById(id);
 
   const datasetSelect = el("ch-dataset-select");
@@ -11,6 +11,7 @@ const ChartsView = (() => {
   const categorySelect = el("ch-category-select");
   const indicatorSelect = el("ch-indicator-select");
   const chipsEl = el("ch-muni-chips");
+  const resetMunisBtn = el("ch-muni-reset");
   const searchInput = el("ch-muni-search");
   const suggestionsEl = el("ch-muni-suggestions");
   const yearFromSelect = el("ch-year-from");
@@ -70,6 +71,12 @@ const ChartsView = (() => {
     });
     lineToggle.addEventListener("change", render);
 
+    resetMunisBtn.addEventListener("click", () => {
+      state.selectedMunis = [];
+      renderChips();
+      render();
+    });
+
     searchInput.addEventListener("input", updateSuggestions);
     searchInput.addEventListener("focus", updateSuggestions);
     document.addEventListener("click", (e) => {
@@ -115,7 +122,7 @@ const ChartsView = (() => {
         opt.textContent = displayCategory(cat);
         categorySelect.appendChild(opt);
       }
-      state.currentCategory = preserve && data.categories.includes(prevCategory) ? prevCategory : data.categories[0];
+      state.currentCategory = preserve && data.categories.includes(prevCategory) ? prevCategory : defaultCategory(data.categories);
       categorySelect.value = state.currentCategory;
     } else {
       categoryField.classList.add("hidden");

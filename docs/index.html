@@ -101,7 +101,10 @@
       </div>
 
       <div class="field">
-        <label>Муниципалитеты</label>
+        <div class="field-label-row">
+          <label>Муниципалитеты</label>
+          <button type="button" id="ch-muni-reset" class="link-btn">Сбросить</button>
+        </div>
         <div id="ch-muni-chips" class="chips"></div>
         <input type="text" id="ch-muni-search" placeholder="Начните вводить название…" autocomplete="off">
         <div id="ch-muni-suggestions" class="suggestions hidden"></div>
@@ -135,7 +138,7 @@
   <!-- ==================== ВКЛАДКА: КРЕАТИВНЫЕ ИНДУСТРИИ ==================== -->
   <div id="view-ci" class="view">
     <div id="ci-toolbar">
-      <div class="field">
+      <div class="field ci-muni-field">
         <label for="ci-muni-search">Муниципалитет</label>
         <input type="text" id="ci-muni-search" placeholder="Начните вводить название…" autocomplete="off">
         <div id="ci-muni-suggestions" class="suggestions hidden"></div>

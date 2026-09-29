@@ -18,8 +18,38 @@ const CiView = (() => {
   const ORG_KEY = "ci_econ";
   const IP_KEY = "ci_ip";
   const TOTAL_STEM = "КИ всего";
+
+  // Донат-графики в карточках категорий совсем маленькие (92x92px), а
+  // стандартная подсказка Chart.js рисуется прямо на canvas и обрезается
+  // его границами. Поэтому рисуем подсказку отдельным HTML-элементом.
+  let chartTooltipEl = null;
+  function getChartTooltip() {
+    if (!chartTooltipEl) {
+      chartTooltipEl = document.createElement("div");
+      chartTooltipEl.className = "ci-chart-tooltip";
+      document.body.appendChild(chartTooltipEl);
+    }
+    return chartTooltipEl;
+  }
+
+  function externalTooltipHandler(context) {
+    const { chart, tooltip } = context;
+    const tooltipEl = getChartTooltip();
+    if (tooltip.opacity === 0) {
+      tooltipEl.style.opacity = "0";
+      return;
+    }
+    if (tooltip.body) {
+      const lines = tooltip.body.flatMap((b) => b.lines);
+      tooltipEl.textContent = lines.join(" ");
+    }
+    const rect = chart.canvas.getBoundingClientRect();
+    tooltipEl.style.opacity = "1";
+    tooltipEl.style.left = `${rect.left + tooltip.caretX}px`;
+    tooltipEl.style.top = `${rect.top + tooltip.caretY}px`;
+  }
   const DEFAULT_MUNI = "Владивостокский городской округ";
-  const TOP_ORGS_COUNT = 10;
+  const TOP_ORGS_COUNT = 20;
 
   // Сокращения организационно-правовых форм: от самых специфичных к общим,
   // чтобы не "проглотить" более точную форму более общей заменой.
@@ -376,7 +406,6 @@ const CiView = (() => {
     const revenues = valueOf(econ, orgRow, "revenues");
     const fixedAssets = valueOf(econ, orgRow, "fixed_assets");
     const wages = valueOf(econ, orgRow, "wages");
-    const mostProfitable = mostProfitableOf(econ, orgRow);
 
     const card = document.createElement("div");
     card.className = "ci-card";
@@ -385,21 +414,6 @@ const CiView = (() => {
     const donutHtml = hasDonutData
       ? `<div class="ci-card-donut"><canvas></canvas><div class="ci-card-donut-total">${fmtNumber(existingOrg + existingIp)}</div></div>`
       : `<div class="ci-card-donut" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:11px;text-align:center;">Нет данных</div>`;
-
-    const MAX_MP = 5;
-    const mpHtml = mostProfitable.length
-      ? `
-      <div class="ci-card-most-profitable">
-        <div class="stat-label">Крупнейшие организации</div>
-        <ol>
-          ${mostProfitable
-            .slice(0, MAX_MP)
-            .map((o) => `<li><span class="mp-name">${escapeHtml(abbreviateOrgName(o.name))}</span><span class="mp-revenue">${fmtNumber(o.revenue)} ₽</span></li>`)
-            .join("")}
-        </ol>
-        ${mostProfitable.length > MAX_MP ? `<div class="mp-more">и ещё ${mostProfitable.length - MAX_MP}</div>` : ""}
-      </div>`
-      : "";
 
     card.innerHTML = `
       <h3>${stem}</h3>
@@ -419,7 +433,6 @@ const CiView = (() => {
         <div><div class="stat-label">Осн. средства</div><div class="stat-value">${fmtNumber(fixedAssets)} ₽</div></div>
         <div><div class="stat-label">ФОТ</div><div class="stat-value">${fmtNumber(wages)} ₽</div></div>
       </div>
-      ${mpHtml}
     `;
 
     if (hasDonutData) {
@@ -436,7 +449,13 @@ const CiView = (() => {
           cutout: "68%",
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmtNumber(ctx.raw)}` } },
+            tooltip: {
+              enabled: false,
+              external: externalTooltipHandler,
+              callbacks: {
+                label: (ctx) => `${ctx.label}: ${fmtNumber(ctx.raw)}`,
+              },
+            },
           },
         },
       });
