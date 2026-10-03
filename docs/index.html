@@ -16,6 +16,7 @@
     <button class="tab-btn active" data-tab="map">Карта</button>
     <button class="tab-btn" data-tab="charts">Динамика показателей</button>
     <button class="tab-btn" data-tab="ci">Креативные индустрии</button>
+    <button class="tab-btn" data-tab="regions">Регионы</button>
   </div>
 </nav>
 
@@ -50,14 +51,12 @@
         </div>
 
         <div class="field">
-          <label for="year-slider">Год: <span id="year-label"></span></label>
+          <label for="year-select">Год</label>
           <div class="year-row">
             <button id="play-btn" title="Проиграть по годам">▶</button>
-            <input type="range" id="year-slider" min="2009" max="2025" step="1" value="2025">
+            <select id="year-select"></select>
           </div>
         </div>
-
-        <div id="legend"></div>
 
         <div id="detail-panel" class="hidden">
           <h2 id="detail-name"></h2>
@@ -69,7 +68,10 @@
         <p class="hint">Наведите курсор на муниципалитет, чтобы увидеть значение. Кликните, чтобы посмотреть динамику по годам.</p>
       </aside>
 
-      <div id="map"></div>
+      <div id="map-stage">
+        <div id="map"></div>
+        <div id="legend" class="float-pill map-legend"></div>
+      </div>
     </div>
   </div>
 
@@ -170,6 +172,48 @@
     </div>
   </div>
 
+  <!-- ==================== ВКЛАДКА: РЕГИОНЫ ==================== -->
+  <div id="view-regions" class="view">
+    <div id="rg-stage">
+      <div id="rg-map"></div>
+
+      <div id="rg-controls" class="float-card">
+        <div class="float-title">Регионы Дальнего Востока</div>
+        <div class="field">
+          <label for="rg-indicator">Показатель</label>
+          <select id="rg-indicator"></select>
+        </div>
+        <div class="field">
+          <label for="rg-year">Год</label>
+          <div class="year-row">
+            <button type="button" id="rg-play" title="Проиграть по годам">▶</button>
+            <select id="rg-year"></select>
+          </div>
+        </div>
+        <label class="checkbox-label">
+          <input type="checkbox" id="rg-indexed">
+          Индексировано (с поправкой на инфляцию)
+        </label>
+      </div>
+
+      <div id="rg-zoom" class="float-pill">
+        <button type="button" id="rg-zoom-in" title="Приблизить">+</button>
+        <button type="button" id="rg-zoom-out" title="Отдалить">−</button>
+        <button type="button" id="rg-zoom-reset" title="Показать все регионы">⟲</button>
+      </div>
+
+      <div id="rg-legend" class="float-pill map-legend"></div>
+
+      <aside id="rg-detail" class="float-card hidden">
+        <button type="button" id="rg-detail-close" class="rg-close" title="Закрыть">×</button>
+        <h2 id="rg-detail-name"></h2>
+        <div id="rg-detail-sub"></div>
+        <div id="rg-kpi"></div>
+        <div class="rg-chart-wrap"><canvas id="rg-chart"></canvas></div>
+      </aside>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -180,6 +224,7 @@
 <script src="map.js"></script>
 <script src="charts.js"></script>
 <script src="ci.js"></script>
+<script src="regions.js"></script>
 <script src="main.js"></script>
 </body>
 </html>

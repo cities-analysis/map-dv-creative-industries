@@ -14,11 +14,11 @@
 
 ```
 data/                  исходные данные (обновляете вы)
-  final_calculations_ci_econ.csv
-  final_calculations_ci_econ_indexed.csv
-  final_calculations_ci_ip.csv
-  final_calculations_with_extra.csv
-  final_calculations_with_extra_indexed.csv
+  city_calculations.csv             общие показатели по муниципалитетам
+  city_ci_2025_calculations.csv     экономика КИ по муниципалитетам и категориям
+  final_calculations_ci_ip.csv      ИП КИ по муниципалитетам и категориям
+  region_calculations.csv           показатели по регионам (вкладка «Регионы»)
+  regions.geojson.gz                контуры 11 регионов (поле name = название региона)
   map_DV_for_Moran_final.gpkg
   ci_mapping.xlsx
   indicators_mapping.xlsx
@@ -26,13 +26,15 @@ data/                  исходные данные (обновляете вы)
 
 scripts/                build-скрипты (Python)
   build.py               точка входа: пересобирает всё
-  build_geo.py            gpkg -> docs/data/geo.json, municipalities.json
-  build_data.py            csv -> docs/data/*.json
+  build_geo.py            gpkg -> geo.json, municipalities.json; regions.geojson.gz -> regions_geo.json
+  build_data.py            муниципальные csv -> docs/data/*.json
+  build_regions.py         region_calculations.csv -> docs/data/regions.json
   common.py                общие функции
   requirements.txt
 
 docs/                   сайт карты (публикуется GitHub Pages)
-  index.html, app.js, style.css
+  index.html, style.css, data.js, main.js
+  map.js, charts.js, ci.js, regions.js   по одному модулю на вкладку
   data/                   сгенерированные JSON (НЕ редактировать руками)
 ```
 
@@ -40,23 +42,30 @@ docs/                   сайт карты (публикуется GitHub Pages
 
 - Геометрия муниципалитетов хранится в `map_DV_for_Moran_final.gpkg`, поле
   `QGIS_name`.
-- Данные (`final_*.csv`) используют поле `oktmo_name_actual`.
+- Муниципальные данные (`city_*.csv`, `final_calculations_ci_ip.csv`) используют поле
+  `oktmo_name_actual`; региональные (`region_calculations.csv`) — поле `region`.
 - Файл **`Сопоставление MunicOffic и QGIS_name.xlsx`** — таблица
   соответствия `oktmo_name_actual -> QGIS_name`, по ней build-скрипт
   сопоставляет данные с геометрией.
-- `final_calculations_ci_econ_indexed.csv` и
-  `final_calculations_with_extra_indexed.csv` — те же данные с поправкой на
-  инфляцию. В интерфейсе карты это не отдельный набор данных, а тумблер
-  «Индексировано» рядом с выбором набора.
+- В файлах `city_*.csv` и `region_calculations.csv` есть колонка `indexed`
+  (`True` — значения с поправкой на инфляцию, `False` — номинальные). В
+  интерфейсе это не отдельный набор данных, а тумблер «Индексировано».
+- Вкладка «Регионы» берёт контуры из `docs/data/regions_geo.json` (собирается из
+  `data/regions.geojson.gz`, названия в поле `name` должны совпадать с колонкой
+  `region` в `region_calculations.csv`), значения — из `docs/data/regions.json`. Нули в показателях, зависящих от оплаты труда
+  (`wages == 0`, это 2009–2011 годы), считаются «нет данных».
+- Русские названия показателей берутся из `indicators_mapping.xlsx` (код
+  показателя → название); если кода там нет, в интерфейсе виден сам код.
 
 ## Обновление данных
 
 Когда у вас появятся новые версии данных:
 
 1. Замените нужные файлы в `data/` (названия и структура столбцов должны
-   совпадать с текущими: `region, year, city, oktmo_name_actual, category, ...`
-   для файлов по категориям КИ; `region, year, city, oktmo_name_actual, ...`
-   для `with_extra`).
+   совпадать с текущими: `region, year, city, oktmo_name_actual, category, ...,
+   indexed` для `city_ci_2025_calculations.csv`; `region, year, city,
+   oktmo_name_actual, ..., indexed` для `city_calculations.csv`;
+   `region, year, ..., indexed` для `region_calculations.csv`).
 2. Если появились новые муниципалитеты — добавьте строки в файл
    сопоставления `Сопоставление MunicOffic и QGIS_name.xlsx`
    (`oktmo_name_actual`, `QGIS_name`).

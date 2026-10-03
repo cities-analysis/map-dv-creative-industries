@@ -6,8 +6,9 @@
     map: document.getElementById("view-map"),
     charts: document.getElementById("view-charts"),
     ci: document.getElementById("view-ci"),
+    regions: document.getElementById("view-regions"),
   };
-  const modules = { map: MapView, charts: ChartsView, ci: CiView };
+  const modules = { map: MapView, charts: ChartsView, ci: CiView, regions: RegionsView };
 
   async function activate(name) {
     tabs.forEach((b) => b.classList.toggle("active", b.dataset.tab === name));

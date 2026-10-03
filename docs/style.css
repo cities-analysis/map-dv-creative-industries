@@ -93,9 +93,16 @@ html, body {
   z-index: 500;
 }
 
-#map {
+#map-stage {
+  position: relative;
   flex: 1;
+  min-width: 0;
   height: 100%;
+}
+
+#map {
+  position: absolute;
+  inset: 0;
 }
 
 h1 {
@@ -219,55 +226,6 @@ input[type="text"] {
 
 .checkbox-label input {
   width: auto;
-}
-
-#legend {
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--panel-border);
-}
-
-#legend .legend-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 8px;
-}
-
-#legend .legend-scale {
-  display: flex;
-  border-radius: 4px;
-  overflow: hidden;
-  height: 14px;
-}
-
-#legend .legend-scale span {
-  flex: 1;
-}
-
-#legend .legend-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 4px;
-}
-
-#legend .legend-nodata {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 8px;
-}
-
-#legend .legend-nodata .swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background: #e5e7eb;
-  border: 1px solid #d1d5db;
 }
 
 .hint {
@@ -696,4 +654,260 @@ input[type="text"] {
   #charts-panel { width: 100%; min-width: 0; max-height: 50vh; border-right: none; border-bottom: 1px solid var(--panel-border); }
   #tabbar { height: auto; padding: 10px 16px; }
   #views { height: calc(100vh - 84px); }
+}
+
+/* ==================== Регионы ==================== */
+
+#rg-stage {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+}
+
+#rg-map {
+  position: absolute;
+  inset: 0;
+  background: #f6f9fa;
+}
+
+#rg-map.leaflet-container {
+  font: inherit;
+}
+
+.float-card,
+.float-pill {
+  position: absolute;
+  z-index: 500;
+  background: #fff;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+}
+
+.float-card {
+  border-radius: 18px;
+  padding: 16px 18px;
+}
+
+.float-pill {
+  border-radius: 999px;
+}
+
+.float-title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+#rg-controls {
+  top: 16px;
+  left: 16px;
+  width: 300px;
+}
+
+#rg-controls .field {
+  margin-bottom: 12px;
+}
+
+#rg-zoom {
+  left: 16px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+}
+
+#rg-zoom button {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text);
+}
+
+#rg-zoom button:hover {
+  background: #eef3f4;
+}
+
+#rg-detail {
+  top: 16px;
+  right: 16px;
+  width: 340px;
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
+}
+
+#rg-detail h2 {
+  margin: 0 28px 6px 0;
+  font-size: 17px;
+}
+
+#rg-detail-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+#rg-detail-sub b {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.rg-rank {
+  color: var(--text-muted);
+}
+
+.rg-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: #eef3f4;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+#rg-kpi {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.rg-kpi-item {
+  background: #f4f8f9;
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.rg-kpi-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.rg-kpi-value {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rg-chart-wrap {
+  height: 170px;
+}
+
+.rg-tooltip {
+  font-size: 13px;
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+}
+
+@media (max-width: 720px) {
+  #rg-controls { width: calc(100% - 32px); }
+  #rg-detail { top: auto; bottom: 90px; left: 16px; right: 16px; width: auto; max-height: 45%; }
+}
+
+/* Кольцо фокуса после клика мышью по полигону карты (остаётся для клавиатуры) */
+.leaflet-interactive:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ==================== Легенда-пилюля (карта и регионы) ==================== */
+
+.map-legend {
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  width: 540px;
+  max-width: calc(100% - 140px);
+  padding: 12px 22px 10px;
+  border-radius: 20px;
+}
+
+.legend-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.legend-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.legend-bar span {
+  flex: 1;
+}
+
+.legend-ticks {
+  position: relative;
+  height: 18px;
+  margin-top: 4px;
+}
+
+.legend-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.legend-tick.first {
+  transform: none;
+}
+
+.legend-tick.last {
+  transform: translateX(-100%);
+}
+
+.legend-nodata {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.legend-nodata i {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: #e9edef;
+  border: 1px solid #d5dbde;
+}
+
+.legend-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.legend-link {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .map-legend { width: auto; max-width: calc(100% - 100px); left: 16px; transform: none; }
 }

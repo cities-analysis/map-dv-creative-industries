@@ -1,7 +1,11 @@
 """
-Конвертирует CSV-файлы data/final_*.csv в компактный JSON для карты
+Конвертирует муниципальные CSV из data/ в компактный JSON для карты
 (docs/data/*.json), сопоставляя oktmo_name_actual -> QGIS_name через
 файл 'Сопоставление MunicOffic и QGIS_name.xlsx'.
+
+Если в CSV есть колонка `indexed` (True/False), строки делятся на два
+набора: обычный и индексированный (с поправкой на инфляцию). В интерфейсе
+это не отдельные наборы данных, а тумблер «Индексировано».
 """
 import math
 import os
@@ -13,17 +17,17 @@ from common import DATA_DIR, OUT_DIR, load_mapping, write_json
 INDICATORS_MAPPING_XLSX = os.path.join(DATA_DIR, "indicators_mapping.xlsx")
 
 # Наборы данных "по категориям КИ" (долгий формат: строка = муниципалитет+год+категория)
-# indexed_file (если есть) - тот же набор с поправкой на инфляцию; переключается
-# в интерфейсе тумблером, не отдельным пунктом списка наборов данных.
 CATEGORY_DATASETS = {
     "ci_econ": {
-        "file": "final_calculations_ci_econ.csv",
-        "indexed_file": "final_calculations_ci_econ_indexed.csv",
+        "file": "city_ci_2025_calculations.csv",
+        "has_indexed_flag": True,
+        "category_prefix": "Организации_",
         "title": "Экономика креативных индустрий",
     },
     "ci_ip": {
         "file": "final_calculations_ci_ip.csv",
-        "indexed_file": None,
+        "has_indexed_flag": False,
+        "category_prefix": "ИП_",
         "title": "Индивидуальные предприниматели КИ",
     },
 }
@@ -31,13 +35,13 @@ CATEGORY_DATASETS = {
 # Наборы данных "широкие" (строка = муниципалитет+год, много колонок-индикаторов)
 WIDE_DATASETS = {
     "with_extra": {
-        "file": "final_calculations_with_extra.csv",
-        "indexed_file": "final_calculations_with_extra_indexed.csv",
+        "file": "city_calculations.csv",
+        "has_indexed_flag": True,
         "title": "Общие муниципальные показатели",
     },
 }
 
-NON_INDICATOR_COLS = {"region", "year", "city", "oktmo_name_actual", "category"}
+NON_INDICATOR_COLS = {"region", "year", "city", "oktmo_name_actual", "category", "indexed"}
 
 
 def clean_col(name):
@@ -58,9 +62,23 @@ def load_indicator_labels():
     return {str(row[0]).strip(): str(row[1]).strip() for _, row in df.iterrows() if pd.notna(row[0])}
 
 
-def build_category_dataset(out_key, csv_file, title, mapping, unmatched, labels):
-    path = os.path.join(DATA_DIR, csv_file)
-    df = pd.read_csv(path)
+def load_variants(cfg):
+    """-> (обычный df, индексированный df или None) из одного CSV."""
+    df = pd.read_csv(os.path.join(DATA_DIR, cfg["file"]), low_memory=False)
+    if not cfg["has_indexed_flag"]:
+        return df, None
+    flag = df["indexed"].astype(str).str.strip().str.lower() == "true"
+    return df[~flag].drop(columns="indexed"), df[flag].drop(columns="indexed")
+
+
+def build_category_dataset(out_key, df, title, mapping, unmatched, labels, category_prefix):
+    df = df.copy()
+    # Сайт ищет категории с префиксом ("Организации_КИ всего", "ИП_КИ всего"). Если при
+    # выгрузке префикс потерялся, возвращаем его, иначе все значения "пропадут".
+    has_prefix = df["category"].str.startswith(category_prefix)
+    if not has_prefix.all():
+        print(f"  Префикс '{category_prefix}' добавлен к категориям: {int((~has_prefix).sum())} строк")
+        df.loc[~has_prefix, "category"] = category_prefix + df.loc[~has_prefix, "category"]
     df["QGIS_name"] = df["oktmo_name_actual"].str.strip().map(mapping)
     miss = df[df["QGIS_name"].isna()]["oktmo_name_actual"].unique().tolist()
     if miss:
@@ -104,9 +122,8 @@ def build_category_dataset(out_key, csv_file, title, mapping, unmatched, labels)
     write_json(os.path.join(OUT_DIR, f"{out_key}.json"), out)
 
 
-def build_wide_dataset(out_key, csv_file, title, mapping, unmatched, labels):
-    path = os.path.join(DATA_DIR, csv_file)
-    df = pd.read_csv(path)
+def build_wide_dataset(out_key, df, title, mapping, unmatched, labels):
+    df = df.copy()
     df["QGIS_name"] = df["oktmo_name_actual"].str.strip().map(mapping)
     miss = df[df["QGIS_name"].isna()]["oktmo_name_actual"].unique().tolist()
     if miss:
@@ -148,23 +165,25 @@ def main():
     datasets_meta = {}
 
     for key, cfg in CATEGORY_DATASETS.items():
+        base, indexed = load_variants(cfg)
         print(f"[{key}]")
-        build_category_dataset(key, cfg["file"], cfg["title"], mapping, unmatched, labels)
+        build_category_dataset(key, base, cfg["title"], mapping, unmatched, labels, cfg["category_prefix"])
         indexed_key = None
-        if cfg.get("indexed_file"):
+        if indexed is not None:
             indexed_key = key + "_indexed"
             print(f"[{indexed_key}]")
-            build_category_dataset(indexed_key, cfg["indexed_file"], cfg["title"] + " (индексировано)", mapping, unmatched, labels)
+            build_category_dataset(indexed_key, indexed, cfg["title"] + " (индексировано)", mapping, unmatched, labels, cfg["category_prefix"])
         datasets_meta[key] = {"title": cfg["title"], "type": "category", "indexedKey": indexed_key}
 
     for key, cfg in WIDE_DATASETS.items():
+        base, indexed = load_variants(cfg)
         print(f"[{key}]")
-        build_wide_dataset(key, cfg["file"], cfg["title"], mapping, unmatched, labels)
+        build_wide_dataset(key, base, cfg["title"], mapping, unmatched, labels)
         indexed_key = None
-        if cfg.get("indexed_file"):
+        if indexed is not None:
             indexed_key = key + "_indexed"
             print(f"[{indexed_key}]")
-            build_wide_dataset(indexed_key, cfg["indexed_file"], cfg["title"] + " (индексировано)", mapping, unmatched, labels)
+            build_wide_dataset(indexed_key, indexed, cfg["title"] + " (индексировано)", mapping, unmatched, labels)
         datasets_meta[key] = {"title": cfg["title"], "type": "wide", "indexedKey": indexed_key}
 
     write_json(os.path.join(OUT_DIR, "datasets.json"), datasets_meta)

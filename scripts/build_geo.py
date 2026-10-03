@@ -1,15 +1,21 @@
 """
-Конвертирует data/map_DV_for_Moran_final.gpkg -> docs/data/geo.json (GeoJSON).
+Геометрия карты:
+  data/map_DV_for_Moran_final.gpkg -> docs/data/geo.json (муниципалитеты)
+  data/regions.geojson.gz          -> docs/data/regions_geo.json (регионы)
 
-Геометрия читается напрямую из GeoPackage (SQLite) без GDAL: парсим
+Муниципалитеты читаются напрямую из GeoPackage (SQLite) без GDAL: парсим
 заголовок GeoPackage Binary и передаём WKB в shapely. Полигоны
 упрощаются (Douglas-Peucker), чтобы карта быстро грузилась в браузере.
 """
+import gzip
+import json
 import sqlite3
 import struct
 
+import pandas as pd
+import shapely
 from shapely import wkb
-from shapely.geometry import mapping
+from shapely.geometry import mapping, shape
 from shapely.ops import transform
 
 from common import DATA_DIR, OUT_DIR, write_json
@@ -18,6 +24,11 @@ import os
 GPKG_PATH = os.path.join(DATA_DIR, "map_DV_for_Moran_final.gpkg")
 TABLE = "map_dv_for_moran_final"
 SIMPLIFY_TOLERANCE = 0.0015  # градусы; ~150м, компромисс между весом и детализацией
+
+REGIONS_GEOJSON = os.path.join(DATA_DIR, "regions.geojson.gz")
+REGIONS_CSV = os.path.join(DATA_DIR, "region_calculations.csv")
+REGIONS_NAME_FIELD = "name"  # поле слоя регионов с названием (как в region_calculations.csv)
+REGIONS_SIMPLIFY_TOLERANCE = 0.01  # градусы; регионы крупные, детальный контур не нужен
 
 
 def parse_gpkg_geom(blob):
@@ -93,6 +104,41 @@ def main():
 
     print(f"  Точек до упрощения: {raw_points}, после: {simplified_points}")
     print(f"  Муниципалитетов: {len(municipalities)}, полигонов (features): {len(features)}")
+
+
+def build_regions_geo():
+    """data/regions.geojson.gz -> docs/data/regions_geo.json (свойство region = название)."""
+    with gzip.open(REGIONS_GEOJSON, "rt", encoding="utf-8") as f:
+        layer = json.load(f)
+
+    features = []
+    raw_points = simplified_points = 0
+    for feat in layer["features"]:
+        geom = shape(feat["geometry"])
+        raw_points += _count_points(geom)
+        # Регион, разрезанный по 180-му меридиану (Чукотка), после сдвига состоит
+        # из двух касающихся частей; небольшой buffer туда-обратно склеивает их,
+        # иначе по шву на карте видна тонкая линия.
+        geom = fix_antimeridian(geom).buffer(1e-4).buffer(-1e-4)
+        geom = geom.simplify(REGIONS_SIMPLIFY_TOLERANCE, preserve_topology=True)
+        geom = shapely.set_precision(geom, 1e-4)  # ~10 м: убирает "шум" в знаках после запятой
+        simplified_points += _count_points(geom)
+        features.append(
+            {
+                "type": "Feature",
+                "properties": {"region": feat["properties"][REGIONS_NAME_FIELD].strip()},
+                "geometry": mapping(geom),
+            }
+        )
+    write_json(os.path.join(OUT_DIR, "regions_geo.json"), {"type": "FeatureCollection", "features": features})
+    print(f"  Регионов: {len(features)}. Точек до упрощения: {raw_points}, после: {simplified_points}")
+
+    in_layer = {f["properties"]["region"] for f in features}
+    in_data = set(pd.read_csv(REGIONS_CSV, usecols=["region"])["region"].unique())
+    if in_layer != in_data:
+        print("  !!! Названия регионов в слое и в region_calculations.csv не совпадают:")
+        print(f"      только в слое:   {sorted(in_layer - in_data)}")
+        print(f"      только в данных: {sorted(in_data - in_layer)}")
 
 
 def _count_points(geom):

@@ -12,8 +12,7 @@ const MapView = (() => {
   const categoryField = el("category-field");
   const categorySelect = el("category-select");
   const indicatorSelect = el("indicator-select");
-  const yearSlider = el("year-slider");
-  const yearLabel = el("year-label");
+  const yearSelect = el("year-select");
   const playBtn = el("play-btn");
   const legendEl = el("legend");
   const detailPanel = el("detail-panel");
@@ -65,9 +64,16 @@ const MapView = (() => {
       state.currentIndicator = indicatorSelect.value;
       refresh();
     });
-    yearSlider.addEventListener("input", () => {
-      state.currentYear = Number(yearSlider.value);
-      yearLabel.textContent = state.currentYear;
+    yearSelect.addEventListener("change", () => {
+      state.currentYear = Number(yearSelect.value);
+      refresh();
+    });
+    legendEl.addEventListener("click", (e) => {
+      const link = e.target.closest("[data-year]");
+      if (!link) return;
+      e.preventDefault();
+      state.currentYear = Number(link.dataset.year);
+      yearSelect.value = state.currentYear;
       refresh();
     });
     playBtn.addEventListener("click", togglePlay);
@@ -186,14 +192,15 @@ const MapView = (() => {
     indicatorSelect.value = state.currentIndicator;
 
     const years = data.years;
-    yearSlider.min = years[0];
-    yearSlider.max = years[years.length - 1];
-    state.currentYear =
-      preserveSelections && prevYear >= years[0] && prevYear <= years[years.length - 1]
-        ? prevYear
-        : years[years.length - 1];
-    yearSlider.value = state.currentYear;
-    yearLabel.textContent = state.currentYear;
+    yearSelect.innerHTML = "";
+    for (const y of years) {
+      const opt = document.createElement("option");
+      opt.value = y;
+      opt.textContent = y;
+      yearSelect.appendChild(opt);
+    }
+    state.currentYear = preserveSelections && years.includes(prevYear) ? prevYear : years[years.length - 1];
+    yearSelect.value = state.currentYear;
 
     if (!preserveSelections) detailPanel.classList.add("hidden");
     refresh();
@@ -221,27 +228,75 @@ const MapView = (() => {
     return values;
   }
 
+  const isNum = (v) => v !== null && v !== undefined && !Number.isNaN(v);
+
+  // Верхние границы k классов с равным числом значений в каждом
+  function quantileUppers(pos, k) {
+    const uppers = [];
+    for (let i = 1; i <= k; i++) uppers.push(pos[Math.min(pos.length - 1, Math.ceil((i / k) * pos.length) - 1)]);
+    return uppers;
+  }
+
+  // Округление вверх до "круглого" числа из ряда 1-2-5 (…, 1, 2, 5, 10, 20, 50, 100, …)
+  function niceCeil(x) {
+    const base = Math.pow(10, Math.floor(Math.log10(x)));
+    const m = x / base;
+    return base * (m <= 1.0000001 ? 1 : m <= 2.0000001 ? 2 : m <= 5.0000001 ? 5 : 10);
+  }
+
+  // Верхние границы k классов по порядку величины: отношение соседних границ примерно
+  // постоянно, а сами границы округлены до "круглых" чисел. Последняя граница - максимум.
+  function geometricUppers(pos, k) {
+    const min = pos[0];
+    const max = pos[pos.length - 1];
+    const uppers = [];
+    for (let i = 1; i < k; i++) {
+      const edge = niceCeil(min * Math.pow(max / min, i / k));
+      if (edge < max) uppers.push(edge);
+    }
+    uppers.push(max);
+    return uppers;
+  }
+
+  const unique = (arr) => arr.filter((v, i) => i === 0 || v > arr[i - 1]);
+
+  // Классы: класс i = (breaks[i], breaks[i+1]]. Если среди значений есть нули, ноль - отдельный
+  // (самый светлый) класс: у многих показателей нулей большинство, и квантили на них вырождаются
+  // ("0, 0, 0, 0, 0, 1, 72"). Остальные значения делятся на квантили, а при повторяющихся
+  // значениях или длинном хвосте - на классы по порядку величины (см. geometricUppers).
   function classify(values) {
-    const nums = [...values.values()].filter((v) => v !== null && v !== undefined && !Number.isNaN(v));
-    if (nums.length === 0) return { breaks: [], color: () => NO_DATA_COLOR };
-    nums.sort((a, b) => a - b);
-    const nClasses = Math.min(COLORS.length, new Set(nums).size);
-    if (nClasses <= 1) {
-      return { breaks: [nums[0], nums[0]], color: (v) => (v === null || v === undefined ? NO_DATA_COLOR : COLORS[COLORS.length - 1]) };
+    const nums = [...values.values()].filter(isNum).sort((a, b) => a - b);
+    // Нет значений вовсе или везде ноль: в этих данных нули вместо пропусков означают, что
+    // статистика за год ещё не опубликована, поэтому закрашивать карту как "0" было бы неверно.
+    if (nums.length === 0 || nums[nums.length - 1] === 0) return { breaks: [], colors: [], color: () => NO_DATA_COLOR };
+
+    const hasZero = nums[0] === 0 && nums[nums.length - 1] > 0;
+    const pos = hasZero ? nums.filter((v) => v > 0) : nums;
+    const k = Math.min(hasZero ? COLORS.length - 1 : COLORS.length, new Set(pos).size);
+
+    let uppers = unique(quantileUppers(pos, k));
+    // Геометрическая шкала нужна, если квантили не набрали k классов (много одинаковых значений)
+    // или верхний класс охватывает больше порядка величины ("длинный хвост": Владивосток на фоне
+    // остальных), а все значения положительны.
+    const tooFew = uppers.length < k;
+    const longTail = uppers.length >= 2 && uppers[uppers.length - 1] / uppers[uppers.length - 2] > 10;
+    if ((tooFew || longTail) && pos[0] > 0 && pos[pos.length - 1] / pos[0] > 10) {
+      uppers = unique(geometricUppers(pos, k));
     }
-    const breaks = [];
-    for (let i = 0; i <= nClasses; i++) {
-      const idx = Math.min(nums.length - 1, Math.round((i / nClasses) * (nums.length - 1)));
-      breaks.push(nums[idx]);
-    }
+
+    const breaks = hasZero ? [0, 0, ...uppers] : [pos[0], ...uppers];
+    const n = breaks.length - 1;
+    const colors = Array.from({ length: n }, (_, c) =>
+      n === 1 ? COLORS[COLORS.length - 1] : COLORS[Math.round((c * (COLORS.length - 1)) / (n - 1))]
+    );
+    const offset = hasZero ? 1 : 0;
     const color = (v) => {
-      if (v === null || v === undefined || Number.isNaN(v)) return NO_DATA_COLOR;
-      for (let i = 0; i < nClasses; i++) {
-        if (v <= breaks[i + 1] || i === nClasses - 1) return COLORS[i];
-      }
-      return COLORS[nClasses - 1];
+      if (!isNum(v)) return NO_DATA_COLOR;
+      if (hasZero && v === 0) return colors[0];
+      const j = uppers.findIndex((u) => v <= u);
+      return colors[offset + (j === -1 ? uppers.length - 1 : j)];
     };
-    return { breaks, color, nClasses };
+    return { breaks, colors, color };
   }
 
   function styleFor(color) {
@@ -251,7 +306,7 @@ const MapView = (() => {
   function refresh() {
     if (!state.currentData) return;
     const values = computeValues();
-    const { breaks, color, nClasses } = classify(values);
+    const { breaks, colors, color } = classify(values);
 
     state.geoLayer.eachLayer((layer) => {
       const name = layer.feature.properties.QGIS_name;
@@ -264,26 +319,38 @@ const MapView = (() => {
       layer.bindTooltip(`<b>${name}</b><br>${label}: ${fmtNumber(v)}`, { className: "muni-tooltip", sticky: true });
     });
 
-    renderLegend(breaks, nClasses);
+    renderLegend(breaks, colors, breaks.length ? null : lastYearWithData());
     if (!detailPanel.classList.contains("hidden") && state.selectedFeature) {
       renderDetail(state.selectedFeature);
     }
   }
 
-  function renderLegend(breaks, nClasses) {
-    const label = (state.currentData.columnLabels && state.currentData.columnLabels[state.currentIndicator]) || state.currentIndicator;
-    let html = `<div class="legend-title">${label}${state.currentCategory ? " — " + displayCategory(state.currentCategory) : ""}</div>`;
-    if (!breaks.length) {
-      html += `<div class="legend-nodata"><span class="swatch"></span> Нет данных за ${state.currentYear} год</div>`;
-      legendEl.innerHTML = html;
-      return;
+  // Последний год, в котором у выбранного показателя есть хоть одно ненулевое значение
+  function lastYearWithData() {
+    const data = state.currentData;
+    const catIdx = data.categories ? data.categories.indexOf(state.currentCategory) : -1;
+    const colIdx = currentColumnIndex();
+    let last = null;
+    for (const row of data.rows) {
+      if (data.categories && row[2] !== catIdx) continue;
+      const v = row[colIdx];
+      if (v !== null && v !== undefined && v !== 0 && (last === null || row[1] > last)) last = row[1];
     }
-    html += '<div class="legend-scale">';
-    for (let i = 0; i < nClasses; i++) html += `<span style="background:${COLORS[i]}"></span>`;
-    html += "</div>";
-    html += `<div class="legend-labels"><span>${fmtNumber(breaks[0])}</span><span>${fmtNumber(breaks[breaks.length - 1])}</span></div>`;
-    html += `<div class="legend-nodata"><span class="swatch"></span> Нет данных</div>`;
-    legendEl.innerHTML = html;
+    return last;
+  }
+
+  function renderLegend(breaks, colors, lastYear) {
+    const label = (state.currentData.columnLabels && state.currentData.columnLabels[state.currentIndicator]) || state.currentIndicator;
+    const hint = lastYear
+      ? ` — последний год с данными: <a href="#" class="legend-link" data-year="${lastYear}">${lastYear}</a>`
+      : "";
+    legendEl.innerHTML = DataStore.legendHtml({
+      title: label + (state.currentCategory ? " — " + displayCategory(state.currentCategory) : ""),
+      colors,
+      breaks,
+      emptyText: `Нет данных за ${state.currentYear} год${hint}`,
+      noDataText: "нет данных",
+    });
   }
 
   function onFeatureClick(feature) {
@@ -370,12 +437,10 @@ const MapView = (() => {
     playBtn.classList.add("active");
     playBtn.textContent = "⏸";
     state.playTimer = setInterval(() => {
-      const min = Number(yearSlider.min), max = Number(yearSlider.max);
-      let next = state.currentYear + 1;
-      if (next > max) next = min;
+      const years = state.currentData.years;
+      const next = state.currentYear >= years[years.length - 1] ? years[0] : state.currentYear + 1;
       state.currentYear = next;
-      yearSlider.value = next;
-      yearLabel.textContent = next;
+      yearSelect.value = next;
       refresh();
     }, 1200);
   }
