@@ -19,6 +19,16 @@ const ChartsView = (() => {
   const lineToggle = el("ch-line-toggle");
   const emptyHint = el("ch-empty-hint");
   const chartWrap = el("ch-chart-wrap");
+  const noteEl = el("ch-note");
+
+  // Показатели "на работника": при очень малой ССЧ значение вырастает в сотни раз (например,
+  // Владивосток-2013: ССЧ = 88 человек) и "прижимает" все остальные годы к нулю. Для них
+  // шкала Y ограничивается разумным пределом, а слишком большие столбики обрезаются сверху
+  // (точное значение видно в подсказке); под графиком перечислено, что обрезано.
+  const CAPPED_INDICATORS = new Set(["RL", "FL", "WL"]);
+  const CAP_QUANTILE = 0.9;
+  const CAP_MARGIN = 1.25;
+  const CAP_TRIGGER = 3; // ограничивать, только если максимум больше предела в 3+ раза
   const canvas = el("ch-canvas");
 
   const PALETTE = ["#2563eb", "#dc2626", "#059669", "#d97706", "#7c3aed", "#db2777", "#0891b2", "#65a30d", "#c026d3", "#4f46e5"];
@@ -270,6 +280,7 @@ const ChartsView = (() => {
     if (!state.currentData || state.selectedMunis.length === 0 || state.yearFrom == null) {
       emptyHint.style.display = "flex";
       chartWrap.classList.remove("visible");
+      noteEl.textContent = "";
       if (state.chart) {
         state.chart.destroy();
         state.chart = null;
@@ -288,9 +299,10 @@ const ChartsView = (() => {
 
     const datasets = state.selectedMunis.map((name, i) => {
       const color = PALETTE[i % PALETTE.length];
+      const values = seriesFor(name);
       return {
         label: name,
-        data: seriesFor(name),
+        data: values,
         borderColor: color,
         backgroundColor: isLine ? color : color + "b3",
         spanGaps: true,
@@ -299,6 +311,24 @@ const ChartsView = (() => {
         pointRadius: isLine ? 3 : 0,
       };
     });
+
+    let yMax;
+    noteEl.textContent = "";
+    if (CAPPED_INDICATORS.has(state.currentIndicator)) {
+      const all = datasets.flatMap((d) => d.data).filter((v) => v !== null && v > 0).sort((x, y) => x - y);
+      if (all.length >= 4) {
+        const cap = all[Math.min(all.length - 1, Math.floor(all.length * CAP_QUANTILE))] * CAP_MARGIN;
+        if (all[all.length - 1] > cap * CAP_TRIGGER) {
+          yMax = cap;
+          const clipped = [];
+          for (const d of datasets) {
+            const ys = d.data.map((v, k) => (v !== null && v > cap ? years[k] : null)).filter((y) => y !== null);
+            if (ys.length) clipped.push(`${d.label} — ${ys.join(", ")}`);
+          }
+          noteEl.textContent = `Шкала ограничена: слишком большие значения обрезаны сверху (обычно из-за очень малой численности работников в этом году), точное значение видно при наведении. Обрезано: ${clipped.join("; ")}.`;
+        }
+      }
+    }
 
     if (state.chart) state.chart.destroy();
     state.chart = new Chart(canvas.getContext("2d"), {
@@ -318,7 +348,7 @@ const ChartsView = (() => {
           tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${fmtNumber(ctx.raw)}` } },
         },
         scales: {
-          y: { ticks: { callback: (v) => fmtNumber(v) } },
+          y: { max: yMax, ticks: { includeBounds: yMax === undefined, callback: (v) => fmtNumber(v) } },
         },
       },
     });
