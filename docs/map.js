@@ -1,6 +1,7 @@
 const MapView = (() => {
   "use strict";
 
+  const QUANTILE_ONLY = new Set(["RL", "FL", "WL"]);
   const COLORS = ["#ffffcc", "#c7e9b4", "#7fcdbb", "#41b6c4", "#2c7fb8", "#253494"]; // YlGnBu, 6 классов
   const NO_DATA_COLOR = "#e5e7eb";
   const { displayCategory, defaultCategory, fmtNumber } = DataStore;
@@ -279,7 +280,9 @@ const MapView = (() => {
     // или верхний класс охватывает больше порядка величины ("длинный хвост": Владивосток на фоне
     // остальных), а все значения положительны.
     const tooFew = uppers.length < k;
-    const longTail = uppers.length >= 2 && uppers[uppers.length - 1] / uppers[uppers.length - 2] > 10;
+    // У показателей "на работника" длинный хвост - это выбросы из-за очень малой ССЧ, а не
+    // осмысленный разброс: для них оставляем квантили, чтобы карта не сливалась в один цвет.
+    const longTail = !QUANTILE_ONLY.has(state.currentIndicator) && uppers.length >= 2 && uppers[uppers.length - 1] / uppers[uppers.length - 2] > 10;
     if ((tooFew || longTail) && pos[0] > 0 && pos[pos.length - 1] / pos[0] > 10) {
       uppers = unique(geometricUppers(pos, k));
     }
@@ -314,7 +317,7 @@ const MapView = (() => {
       const style = styleFor(color(v));
       layer._choroplethStyle = style;
       layer.setStyle(style);
-      const label = (state.currentData.columnLabels && state.currentData.columnLabels[state.currentIndicator]) || state.currentIndicator;
+      const label = DataStore.indicatorTitle(state.currentData, state.currentIndicator);
       layer.unbindTooltip();
       layer.bindTooltip(`<b>${name}</b><br>${label}: ${fmtNumber(v)}`, { className: "muni-tooltip", sticky: true });
     });
@@ -340,7 +343,7 @@ const MapView = (() => {
   }
 
   function renderLegend(breaks, colors, lastYear) {
-    const label = (state.currentData.columnLabels && state.currentData.columnLabels[state.currentIndicator]) || state.currentIndicator;
+    const label = DataStore.indicatorTitle(state.currentData, state.currentIndicator);
     const hint = lastYear
       ? ` — последний год с данными: <a href="#" class="legend-link" data-year="${lastYear}">${lastYear}</a>`
       : "";
@@ -374,7 +377,7 @@ const MapView = (() => {
       return row ? row[colIdx] : null;
     });
 
-    const label = (data.columnLabels && data.columnLabels[state.currentIndicator]) || state.currentIndicator;
+    const label = DataStore.indicatorTitle(data, state.currentIndicator);
     const curVal = series[data.years.indexOf(state.currentYear)];
     detailValue.textContent = `${label}, ${state.currentYear}: ${fmtNumber(curVal)}`;
 

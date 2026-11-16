@@ -283,7 +283,7 @@ const ChartsView = (() => {
     for (let y = state.yearFrom; y <= state.yearTo; y++) years.push(y);
 
     const data = state.currentData;
-    const label = (data.columnLabels && data.columnLabels[state.currentIndicator]) || state.currentIndicator;
+    const label = DataStore.indicatorTitle(data, state.currentIndicator);
     const isLine = lineToggle.checked;
 
     const datasets = state.selectedMunis.map((name, i) => {

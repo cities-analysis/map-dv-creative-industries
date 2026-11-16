@@ -120,7 +120,15 @@ const DataStore = (() => {
       <div class="legend-nodata"><i></i> ${noDataText}</div>`;
   }
 
+  // Название показателя с единицей измерения (если она задана в columnUnits набора данных)
+  function indicatorTitle(data, code) {
+    const label = (data.columnLabels && data.columnLabels[code]) || code;
+    const unit = data.columnUnits && data.columnUnits[code];
+    return unit ? `${label}, ${unit}` : label;
+  }
+
   return {
+    indicatorTitle,
     loadMeta,
     loadGeo,
     loadDataset,
