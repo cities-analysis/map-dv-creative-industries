@@ -805,6 +805,38 @@ input[type="text"] {
   height: 170px;
 }
 
+.rg-label-wrap {
+  background: none;
+  border: none;
+  pointer-events: none;
+}
+
+.rg-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: max-content;
+  max-width: calc(var(--rg-scale, 1) * 110px);
+  text-align: center;
+  white-space: normal;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: #0f2f36;
+  text-shadow:
+    0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 6px rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+}
+
+.rg-label.on-dark {
+  color: #ffffff;
+  text-shadow:
+    0 0 3px rgba(8, 40, 48, 0.9),
+    0 0 3px rgba(8, 40, 48, 0.9),
+    0 0 6px rgba(8, 40, 48, 0.7);
+}
+
 .rg-tooltip {
   font-size: 13px;
   border: none;

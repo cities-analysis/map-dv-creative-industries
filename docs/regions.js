@@ -36,6 +36,24 @@ const RegionsView = (() => {
   const KPI = ["revenues", "fixed_assets", "wages", "existing_orgs", "existing_ip", "ssch"];
   const DEFAULT_INDICATOR = "revenues";
 
+  // Подписи на карте: короткие названия (для длинных) и ручная подстройка положения/размера.
+  // dx/dy - сдвиг в градусах (долгота/широта), size - множитель размера шрифта,
+  // outside - подпись вынесена за контур региона (на фон карты), цвет не зависит от заливки.
+  const SHORT_NAMES = {
+    "Республика Бурятия": "Бурятия",
+    "Республика Саха (Якутия)": "Республика Саха (Якутия)",
+    "Еврейская автономная область": "Еврейская АО",
+    "Чукотский автономный округ": "Чукотский АО",
+  };
+  const LABEL_TWEAKS = {
+    "Еврейская автономная область": { size: 0.78 },
+    "Сахалинская область": { size: 0.85, dx: 3.6, dy: 0.4, outside: true },
+    "Хабаровский край": { dx: 2.2, dy: 2.6 },
+    "Амурская область": { dx: -1.2, dy: 0.5 },
+    "Приморский край": { dy: -0.4 },
+    "Республика Бурятия": { size: 0.9 },
+  };
+
   const state = {
     initialized: false,
     data: null,
@@ -46,6 +64,8 @@ const RegionsView = (() => {
     geoLayer: null,
     layers: {}, // имя региона -> слой Leaflet
     features: {}, // имя региона -> GeoJSON-фича
+    labelLayer: null,
+    labels: {}, // имя региона -> {marker, outside}
     hoverOutline: null,
     selectOutline: null,
     indicator: DEFAULT_INDICATOR,
@@ -153,9 +173,133 @@ const RegionsView = (() => {
     const outline = (weight) => L.geoJSON(null, { style: { fill: false, color: BORDER_ACTIVE, weight }, interactive: false }).addTo(state.map);
     state.hoverOutline = outline(2.5);
     state.selectOutline = outline(3.5);
+    state.labelLayer = L.layerGroup().addTo(state.map);
+    addLabels();
     state.bounds = state.geoLayer.getBounds();
+    state.map.on("zoomend resize", updateLabelScale);
     state.map.setMaxBounds(state.bounds.pad(0.6));
     fitAll();
+    updateLabelScale();
+  }
+
+  // Подписи регионов: всегда видны, не перехватывают мышь. Позиция - "полюс недоступности"
+  // самого большого полигона региона (точка, наиболее удалённая от границ), поэтому
+  // подпись не уезжает в море у вытянутых и составных регионов.
+  function addLabels() {
+    for (const [name, feature] of Object.entries(state.features)) {
+      const pos = labelPoint(feature.geometry);
+      if (!pos) continue;
+      const tweak = LABEL_TWEAKS[name] || {};
+      const text = escapeHtml(SHORT_NAMES[name] || name);
+      const icon = L.divIcon({
+        className: "rg-label-wrap",
+        html: `<span class="rg-label" style="font-size:calc(var(--rg-scale, 1) * ${(tweak.size || 1) * 12.5}px)">${text}</span>`,
+        iconSize: [0, 0],
+      });
+      state.labels[name] = {
+        outside: !!tweak.outside,
+        marker: L.marker([pos[1] + (tweak.dy || 0), pos[0] + (tweak.dx || 0)], { icon, interactive: false, keyboard: false }).addTo(state.labelLayer),
+      };
+    }
+  }
+
+  // Размер подписей следует за масштабом карты: ширина региона на экране ~625px = базовый размер.
+  function updateLabelScale() {
+    const nw = state.map.latLngToContainerPoint(state.bounds.getNorthWest());
+    const se = state.map.latLngToContainerPoint(state.bounds.getSouthEast());
+    const scale = Math.max(0.6, Math.min(1.7, Math.abs(se.x - nw.x) / 625));
+    state.map.getContainer().style.setProperty("--rg-scale", scale.toFixed(3));
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement("div");
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function labelPoint(geometry) {
+    const polys = geometry.type === "MultiPolygon" ? geometry.coordinates : [geometry.coordinates];
+    let best = null;
+    let bestArea = -1;
+    for (const poly of polys) {
+      const a = Math.abs(ringArea(poly[0]));
+      if (a > bestArea) {
+        bestArea = a;
+        best = poly;
+      }
+    }
+    return best ? poleOfInaccessibility(best) : null;
+  }
+
+  function ringArea(ring) {
+    let a = 0;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) a += ring[j][0] * ring[i][1] - ring[i][0] * ring[j][1];
+    return a / 2;
+  }
+
+  function poleOfInaccessibility(poly) {
+    const rings = poly;
+    const outer = rings[0];
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [x, y] of outer) {
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+    }
+    const k = Math.cos((((minY + maxY) / 2) * Math.PI) / 180); // сжатие долготы на этой широте
+    const inside = (x, y) => {
+      let c = false;
+      for (const ring of rings) {
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const [xi, yi] = ring[i];
+          const [xj, yj] = ring[j];
+          if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
+        }
+      }
+      return c;
+    };
+    const dist = (x, y) => {
+      let d = Infinity;
+      for (const ring of rings) {
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          const ax = ring[j][0] * k, ay = ring[j][1], bx = ring[i][0] * k, by = ring[i][1];
+          const px = x * k, dx = bx - ax, dy = by - ay;
+          const len = dx * dx + dy * dy;
+          let t = len ? ((px - ax) * dx + (y - ay) * dy) / len : 0;
+          t = Math.max(0, Math.min(1, t));
+          const ex = ax + t * dx - px, ey = ay + t * dy - y;
+          d = Math.min(d, ex * ex + ey * ey);
+        }
+      }
+      return Math.sqrt(d);
+    };
+    let best = [(minX + maxX) / 2, (minY + maxY) / 2];
+    let bestD = -1;
+    let sx = (maxX - minX) / 24, sy = (maxY - minY) / 24;
+    let cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    let w = maxX - minX, h = maxY - minY;
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i <= 24; i++) {
+        for (let j = 0; j <= 24; j++) {
+          const x = cx - w / 2 + (w * i) / 24;
+          const y = cy - h / 2 + (h * j) / 24;
+          if (!inside(x, y)) continue;
+          const d = dist(x, y);
+          if (d > bestD) {
+            bestD = d;
+            best = [x, y];
+          }
+        }
+      }
+      cx = best[0];
+      cy = best[1];
+      w = sx * 4;
+      h = sy * 4;
+      sx /= 6;
+      sy /= 6;
+    }
+    return best;
   }
 
   // Карта вписывается в свободную область: слева - панель фильтров, справа -
@@ -219,7 +363,18 @@ const RegionsView = (() => {
   }
 
   function applyStyle(name) {
-    state.layers[name].setStyle({ fillColor: colorFor(valueOf(name, state.year)), fillOpacity: 1, color: BORDER, weight: 1.5 });
+    const fill = colorFor(valueOf(name, state.year));
+    state.layers[name].setStyle({ fillColor: fill, fillOpacity: 1, color: BORDER, weight: 1.5 });
+    // На тёмной заливке подпись светлая, на светлой - тёмная
+    const label = state.labels[name];
+    const span = label && label.marker.getElement() && label.marker.getElement().firstChild;
+    if (span) span.classList.toggle("on-dark", !label.outside && isDark(fill));
+  }
+
+  function isDark(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const lum = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+    return lum < 0.55;
   }
 
   function showOutline(group, name) {
