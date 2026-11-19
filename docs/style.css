@@ -968,7 +968,17 @@ input[type="text"] {
 
 .tabbar-title[role="button"] { cursor: pointer; }
 .tabbar-title[role="button"]:hover { text-decoration: underline; text-underline-offset: 3px; }
-.about-btn { margin-left: auto; border: 1px solid rgba(255, 255, 255, 0.25); }
+.about-btn {
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: transparent;
+  color: #cbd5e1;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.about-btn:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
 
 #site-footer {
   display: flex;
