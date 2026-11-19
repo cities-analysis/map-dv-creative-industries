@@ -11,13 +11,14 @@
 <body>
 
 <nav id="tabbar">
-  <div class="tabbar-title">Креативные индустрии Дальнего Востока</div>
+  <div class="tabbar-title" id="about-title" role="button" tabindex="0" title="О базе данных">Креативные индустрии Дальнего Востока</div>
   <div class="tabbar-tabs">
     <button class="tab-btn active" data-tab="map">Карта</button>
     <button class="tab-btn" data-tab="charts">Динамика показателей</button>
     <button class="tab-btn" data-tab="ci">Креативные индустрии</button>
     <button class="tab-btn" data-tab="regions">Регионы</button>
   </div>
+  <button class="tab-btn about-btn" id="about-open" type="button">О базе данных</button>
 </nav>
 
 <div id="views">
@@ -217,6 +218,58 @@
 
 </div>
 
+<footer id="site-footer">
+  <span class="ft-full">© ФГАОУ ВО НИ ТПУ, Антонова И. С., Малеева Е. А., Оглезнева Е. А., 2025 · Свидетельство о регистрации БД № 2025626422 · Исследование выполнено за счёт гранта РНФ № 25-28-01135 · This study was supported by the grant of the Russian Science Foundation № 25-28-01135</span>
+  <span class="ft-mid">© НИ ТПУ, 2025 · Свидетельство о регистрации БД № 2025626422 · Грант РНФ № 25-28-01135 · RSF grant No. 25-28-01135</span>
+  <span class="ft-short">© НИ ТПУ, 2025 · Грант РНФ № 25-28-01135</span>
+  <button type="button" class="ft-link" id="about-open-footer">О базе данных и цитирование</button>
+</footer>
+
+<div id="about-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="about-heading">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card">
+    <button type="button" class="modal-close" data-close aria-label="Закрыть">×</button>
+    <h2 id="about-heading">О базе данных</h2>
+
+    <section class="about-cert">
+      <a href="assets/certificate-2025626422.pdf" target="_blank" rel="noopener" class="cert-link" title="Открыть свидетельство (PDF)">
+        <img src="assets/certificate-2025626422.jpg" alt="Свидетельство о государственной регистрации базы данных № 2025626422">
+      </a>
+      <div class="cert-info">
+        <h3>Свидетельство о государственной регистрации базы данных № 2025626422</h3>
+        <p class="cert-title">«Потенциал развития креативных индустрий Дальнего Востока на муниципальном и региональном уровнях»</p>
+        <dl>
+          <dt>Правообладатель</dt>
+          <dd>Федеральное государственное автономное образовательное учреждение высшего образования «Национальный исследовательский Томский политехнический университет»</dd>
+          <dt>Авторы</dt>
+          <dd>Антонова Ирина Сергеевна, Малеева Екатерина Александровна, Оглезнева Елизавета Андреевна</dd>
+          <dt>Заявка</dt>
+          <dd>№ 2025626111, дата поступления 12 декабря 2025 г.</dd>
+          <dt>Регистрация</dt>
+          <dd>23 декабря 2025 г. в Реестре баз данных</dd>
+        </dl>
+        <a class="btn-link" href="assets/certificate-2025626422.pdf" target="_blank" rel="noopener">Открыть свидетельство (PDF)</a>
+      </div>
+    </section>
+
+    <section>
+      <h3>Авторское право</h3>
+      <p>© Федеральное государственное автономное образовательное учреждение высшего образования «Национальный исследовательский Томский политехнический университет», 2025. Материалы базы данных и визуализации охраняются законодательством об авторском праве. При использовании материалов ссылка на источник обязательна.</p>
+    </section>
+
+    <section>
+      <h3>Как цитировать</h3>
+      <div id="cite-list"></div>
+    </section>
+
+    <section>
+      <h3>Финансирование / Funding</h3>
+      <p>Исследование выполнено за счет гранта Российского научного фонда № 25-28-01135, <a href="https://rscf.ru/project/25-28-01135/" target="_blank" rel="noopener">https://rscf.ru/project/25-28-01135/</a></p>
+      <p lang="en">This study was supported by the grant of the Russian Science Foundation № 25-28-01135, <a href="https://rscf.ru/project/25-28-01135/" target="_blank" rel="noopener">https://rscf.ru/project/25-28-01135/</a></p>
+    </section>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
   integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"
@@ -226,6 +279,7 @@
 <script src="charts.js"></script>
 <script src="ci.js"></script>
 <script src="regions.js"></script>
+<script src="about.js"></script>
 <script src="main.js"></script>
 </body>
 </html>
